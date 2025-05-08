@@ -276,6 +276,7 @@
                 <input type="text" id="searchInput" placeholder="Search inventory...">
             </div>
             <div>
+                <button id="addItemBtn" class="btn btn-primary">Add New Item</button>
                 <button id="addStockBtn" class="btn btn-success">Add Stock</button>
                 <button id="recordSaleBtn" class="btn btn-danger">Record Sale</button>
             </div>
@@ -357,9 +358,96 @@
         </div>
     </div>
     
+    <!-- Add New Item Modal -->
+    <div id="addItemModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Item</h2>
+            <form id="addItemForm">
+                <div class="form-group">
+                    <label for="itemCategory">Category</label>
+                    <select id="itemCategory" required>
+                        <option value="">Select Category</option>
+                        <option value="Food">Food</option>
+                        <option value="Watches">Watches</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <!-- Dynamic fields for Food category -->
+                <div id="foodFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="foodType">Food Type</label>
+                        <select id="foodType" required>
+                            <option value="">Select Type</option>
+                            <option value="SISIG">SISIG</option>
+                            <option value="PARES">PARES</option>
+                            <option value="CRISPY PATA">CRISPY PATA</option>
+                            <option value="OTHER">OTHER</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="foodVariation">Variation</label>
+                        <select id="foodVariation">
+                            <option value="REG">Regular</option>
+                            <option value="FRZ">Frozen</option>
+                            <option value="CKD">Cooked</option>
+                            <option value="SPY">Spicy</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Dynamic fields for Watches category -->
+                <div id="watchFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="watchBrand">Brand</label>
+                        <input type="text" id="watchBrand" placeholder="Enter watch brand">
+                    </div>
+                </div>
+                
+                <!-- Common fields for all categories -->
+                <div class="form-group">
+                    <label for="itemSku">SKU</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="itemSku" readonly style="flex-grow: 1;">
+                        <button type="button" id="generateSkuBtn" class="btn btn-primary" style="flex-shrink: 0;">Generate SKU</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="itemName">Name</label>
+                    <input type="text" id="itemName" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemColor">Color (Optional)</label>
+                    <input type="text" id="itemColor">
+                </div>
+                <div class="form-group">
+                    <label for="itemSellPrice">Selling Price</label>
+                    <input type="number" id="itemSellPrice" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemUnitCost">Unit Cost</label>
+                    <input type="number" id="itemUnitCost" min="0" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemReorderPoint">Reorder Point</label>
+                    <input type="number" id="itemReorderPoint" min="1" value="5" required>
+                </div>
+                <div class="form-group">
+                    <label for="itemInitialStock">Initial Stock</label>
+                    <input type="number" id="itemInitialStock" min="0" value="0">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script>
         // Configuration - REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxcMYFzX1mO2bnKeOdYzvcI2qTizxJwT8xbLEhTV0okDaGeeyPq_xdOj6z-hNxR2sHHgQ/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbya67uZfTKJAKTliZH-UWodfxfENPcjuKZD1Il7JC-avY_6Smb3-cUf6sY3i7V3MmQuYA/exec';
         
         // DOM Elements
         const inventoryTable = document.getElementById('inventoryTable');
@@ -367,6 +455,7 @@
         const loadingIndicator = document.getElementById('loadingIndicator');
         const searchInput = document.getElementById('searchInput');
         const refreshBtn = document.getElementById('refreshBtn');
+        const addItemBtn = document.getElementById('addItemBtn');
         const addStockBtn = document.getElementById('addStockBtn');
         const recordSaleBtn = document.getElementById('recordSaleBtn');
         const successMessage = document.getElementById('successMessage');
@@ -386,6 +475,24 @@
         const saleSku = document.getElementById('saleSku');
         const saleQty = document.getElementById('saleQty');
         const saleBatchId = document.getElementById('saleBatchId');
+        
+        // Add Item Modal Elements
+        const addItemModal = document.getElementById('addItemModal');
+        const addItemForm = document.getElementById('addItemForm');
+        const itemCategory = document.getElementById('itemCategory');
+        const foodFields = document.getElementById('foodFields');
+        const watchFields = document.getElementById('watchFields');
+        const foodType = document.getElementById('foodType');
+        const foodVariation = document.getElementById('foodVariation');
+        const watchBrand = document.getElementById('watchBrand');
+        const itemSku = document.getElementById('itemSku');
+        const generateSkuBtn = document.getElementById('generateSkuBtn');
+        const itemName = document.getElementById('itemName');
+        const itemColor = document.getElementById('itemColor');
+        const itemSellPrice = document.getElementById('itemSellPrice');
+        const itemUnitCost = document.getElementById('itemUnitCost');
+        const itemReorderPoint = document.getElementById('itemReorderPoint');
+        const itemInitialStock = document.getElementById('itemInitialStock');
         
         // Close buttons
         const closeButtons = document.querySelectorAll('.close, .close-modal');
@@ -410,6 +517,7 @@
         function setupEventListeners() {
             // Button clicks
             refreshBtn.addEventListener('click', loadInventory);
+            addItemBtn.addEventListener('click', () => openModal(addItemModal));
             addStockBtn.addEventListener('click', () => openModal(addStockModal));
             recordSaleBtn.addEventListener('click', () => openModal(recordSaleModal));
             
@@ -420,7 +528,7 @@
             
             // Close modal when clicking outside
             window.addEventListener('click', (e) => {
-                if (e.target === addStockModal || e.target === recordSaleModal) {
+                if (e.target === addStockModal || e.target === recordSaleModal || e.target === addItemModal) {
                     closeAllModals();
                 }
             });
@@ -428,9 +536,34 @@
             // Form submissions
             addStockForm.addEventListener('submit', handleAddStock);
             recordSaleForm.addEventListener('submit', handleRecordSale);
+            addItemForm.addEventListener('submit', handleAddItem);
+            
+            // Add Item category change event
+            itemCategory.addEventListener('change', handleCategoryChange);
+            
+            // Generate SKU button
+            generateSkuBtn.addEventListener('click', generateSku);
             
             // Search functionality
             searchInput.addEventListener('input', filterInventory);
+        }
+        
+        function handleCategoryChange() {
+            const category = itemCategory.value;
+            
+            // Hide all category-specific fields
+            foodFields.style.display = 'none';
+            watchFields.style.display = 'none';
+            
+            // Show relevant fields based on category
+            if (category === 'Food') {
+                foodFields.style.display = 'block';
+            } else if (category === 'Watches') {
+                watchFields.style.display = 'block';
+            }
+            
+            // Clear the SKU
+            itemSku.value = '';
         }
         
         async function loadInventory() {
@@ -493,8 +626,8 @@
                             ''}
                     </td>
                     <td>
-                        <button class="btn btn-success" data-sku="${item.sku}" onclick="quickAddStock('${item.sku}')">+</button>
-                        <button class="btn btn-danger" data-sku="${item.sku}" onclick="quickRecordSale('${item.sku}')">-</button>
+                        <button class="btn btn-success btn-sm" onclick="quickAddStock('${item.sku}')">+</button>
+                        <button class="btn btn-danger btn-sm" onclick="quickRecordSale('${item.sku}')">-</button>
                     </td>
                 `;
                 
@@ -521,6 +654,98 @@
             });
             
             renderInventory(filteredItems);
+        }
+        
+        async function generateSku() {
+            const category = itemCategory.value;
+            
+            if (!category) {
+                showError('Please select a category first.');
+                return;
+            }
+            
+            let queryParams = `?action=generateSku&category=${category}`;
+            
+            if (category === 'Food') {
+                const type = foodType.value;
+                const variation = foodVariation.value;
+                
+                if (!type) {
+                    showError('Please select a food type first.');
+                    return;
+                }
+                
+                queryParams += `&foodType=${type}&variation=${variation}`;
+            } else if (category === 'Watches') {
+                const brand = watchBrand.value;
+                queryParams += `&brand=${brand}`;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}${queryParams}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate SKU');
+                }
+                
+                const data = await response.json();
+                itemSku.value = data.sku;
+                
+            } catch (error) {
+                showError('Failed to generate SKU. Please try again.');
+                console.error('Error generating SKU:', error);
+            }
+        }
+        
+        async function handleAddItem(e) {
+            e.preventDefault();
+            
+            // Validate SKU
+            if (!itemSku.value) {
+                showError('Please generate a SKU first.');
+                return;
+            }
+            
+            try {
+                const payload = {
+                    action: 'addItem',
+                    sku: itemSku.value,
+                    name: itemName.value,
+                    category: itemCategory.value,
+                    brand: itemCategory.value === 'Watches' ? watchBrand.value : '',
+                    gender: '',
+                    color: itemColor.value,
+                    sell_price: parseFloat(itemSellPrice.value),
+                    unit_cost: parseFloat(itemUnitCost.value),
+                    reorder_point: parseInt(itemReorderPoint.value),
+                    initial_stock: parseInt(itemInitialStock.value),
+                    batch_id: `INIT-${new Date().toISOString().slice(0, 10)}`
+                };
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add item');
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    showSuccess(`Item ${payload.sku} added successfully`);
+                    closeAllModals();
+                    addItemForm.reset();
+                    await loadInventory();
+                } else {
+                    showError(result.message || 'Failed to add item');
+                }
+                
+            } catch (error) {
+                showError('Failed to add item. Please try again.');
+                console.error('Error adding item:', error);
+            }
         }
         
         async function handleAddStock(e) {
@@ -647,6 +872,7 @@
         function closeAllModals() {
             addStockModal.style.display = 'none';
             recordSaleModal.style.display = 'none';
+            addItemModal.style.display = 'none';
         }
         
         function showLoading(show) {
