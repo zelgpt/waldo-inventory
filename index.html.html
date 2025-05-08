@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management System</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --accent: #4895ef;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --light: #f8f9fa;
+            --dark: #212529;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background-color: #f5f7f9;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .search-box {
+            flex: 1;
+            max-width: 300px;
+            position: relative;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d90166;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #0077b6;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        tr.low-stock {
+            background-color: #fff0f3;
+        }
+        
+        tr.low-stock:hover {
+            background-color: #ffe6ea;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 50%;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: var(--dark);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-danger {
+            background-color: #ffecf0;
+            color: var(--danger);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading:after {
+            content: ".";
+            animation: dots 1s steps(5, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% {
+                content: ".";
+            }
+            40% {
+                content: "..";
+            }
+            60% {
+                content: "...";
+            }
+            80%, 100% {
+                content: "";
+            }
+        }
+        
+        .message {
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .message-success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #059669;
+        }
+        
+        .message-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Inventory Management System</h1>
+            <div>
+                <button id="refreshBtn" class="btn btn-primary">Refresh Data</button>
+            </div>
+        </header>
+        
+        <div class="message message-success" id="successMessage"></div>
+        <div class="message message-error" id="errorMessage"></div>
+        
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search inventory...">
+            </div>
+            <div>
+                <button id="addStockBtn" class="btn btn-success">Add Stock</button>
+                <button id="recordSaleBtn" class="btn btn-danger">Record Sale</button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loadingIndicator">Loading inventory data</div>
+        
+        <table id="inventoryTable">
+            <thead>
+                <tr>
+                    <th>SKU</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Brand</th>
+                    <th>Color</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventoryBody"></tbody>
+        </table>
+    </div>
+    
+    <!-- Add Stock Modal -->
+    <div id="addStockModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add Stock</h2>
+            <form id="addStockForm">
+                <div class="form-group">
+                    <label for="stockSku">SKU</label>
+                    <input type="text" id="stockSku" required>
+                </div>
+                <div class="form-group">
+                    <label for="stockQty">Quantity</label>
+                    <input type="number" id="stockQty" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="stockBatchId">Batch ID</label>
+                    <input type="text" id="stockBatchId" required>
+                </div>
+                <div class="form-group">
+                    <label for="stockExpiryDate">Expiry Date (Optional)</label>
+                    <input type="date" id="stockExpiryDate">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Record Sale Modal -->
+    <div id="recordSaleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Record Sale</h2>
+            <form id="recordSaleForm">
+                <div class="form-group">
+                    <label for="saleSku">SKU</label>
+                    <input type="text" id="saleSku" required>
+                </div>
+                <div class="form-group">
+                    <label for="saleQty">Quantity</label>
+                    <input type="number" id="saleQty" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="saleBatchId">Batch ID</label>
+                    <input type="text" id="saleBatchId" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-danger close-modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Record Sale</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration - REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
+        const API_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL';
+        
+        // DOM Elements
+        const inventoryTable = document.getElementById('inventoryTable');
+        const inventoryBody = document.getElementById('inventoryBody');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const searchInput = document.getElementById('searchInput');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const addStockBtn = document.getElementById('addStockBtn');
+        const recordSaleBtn = document.getElementById('recordSaleBtn');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Add Stock Modal Elements
+        const addStockModal = document.getElementById('addStockModal');
+        const addStockForm = document.getElementById('addStockForm');
+        const stockSku = document.getElementById('stockSku');
+        const stockQty = document.getElementById('stockQty');
+        const stockBatchId = document.getElementById('stockBatchId');
+        const stockExpiryDate = document.getElementById('stockExpiryDate');
+        
+        // Record Sale Modal Elements
+        const recordSaleModal = document.getElementById('recordSaleModal');
+        const recordSaleForm = document.getElementById('recordSaleForm');
+        const saleSku = document.getElementById('saleSku');
+        const saleQty = document.getElementById('saleQty');
+        const saleBatchId = document.getElementById('saleBatchId');
+        
+        // Close buttons
+        const closeButtons = document.querySelectorAll('.close, .close-modal');
+        
+        // Store inventory data
+        let inventoryData = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+        
+        function init() {
+            loadInventory();
+            setupEventListeners();
+            
+            // Set default batch ID with current date
+            const today = new Date();
+            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+            stockBatchId.value = `B${dateStr}-01`;
+            saleBatchId.value = `S${dateStr}-01`;
+        }
+        
+        function setupEventListeners() {
+            // Button clicks
+            refreshBtn.addEventListener('click', loadInventory);
+            addStockBtn.addEventListener('click', () => openModal(addStockModal));
+            recordSaleBtn.addEventListener('click', () => openModal(recordSaleModal));
+            
+            // Close modal buttons
+            closeButtons.forEach(btn => {
+                btn.addEventListener('click', closeAllModals);
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === addStockModal || e.target === recordSaleModal) {
+                    closeAllModals();
+                }
+            });
+            
+            // Form submissions
+            addStockForm.addEventListener('submit', handleAddStock);
+            recordSaleForm.addEventListener('submit', handleRecordSale);
+            
+            // Search functionality
+            searchInput.addEventListener('input', filterInventory);
+        }
+        
+        async function loadInventory() {
+            try {
+                showLoading(true);
+                inventoryTable.style.display = 'none';
+                
+                const response = await fetch(`${API_URL}?action=getInventory`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch inventory data');
+                }
+                
+                const data = await response.json();
+                inventoryData = data;
+                
+                renderInventory(data);
+                showLoading(false);
+                inventoryTable.style.display = 'table';
+            } catch (error) {
+                showError('Failed to load inventory data. Please try again.');
+                console.error('Error loading inventory:', error);
+                showLoading(false);
+            }
+        }
+        
+        function renderInventory(items) {
+            inventoryBody.innerHTML = '';
+            
+            if (items.length === 0) {
+                inventoryBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 20px;">
+                            No inventory items found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Apply low stock class if qty is at or below reorder point
+                if (item.qty_on_hand <= item.reorder_point) {
+                    row.classList.add('low-stock');
+                }
+                
+                row.innerHTML = `
+                    <td>${item.sku}</td>
+                    <td>${item.name}</td>
+                    <td>${item.category || 'N/A'}</td>
+                    <td>${item.brand || 'N/A'}</td>
+                    <td>${item.color || 'N/A'}</td>
+                    <td>$${parseFloat(item.sell_price).toFixed(2)}</td>
+                    <td>${item.qty_on_hand}</td>
+                    <td>
+                        ${item.qty_on_hand <= item.reorder_point ? 
+                            `<span class="badge badge-danger">Low Stock</span>` : 
+                            ''}
+                    </td>
+                    <td>
+                        <button class="btn btn-success" data-sku="${item.sku}" onclick="quickAddStock('${item.sku}')">+</button>
+                        <button class="btn btn-danger" data-sku="${item.sku}" onclick="quickRecordSale('${item.sku}')">-</button>
+                    </td>
+                `;
+                
+                inventoryBody.appendChild(row);
+            });
+        }
+        
+        function filterInventory() {
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderInventory(inventoryData);
+                return;
+            }
+            
+            const filteredItems = inventoryData.filter(item => {
+                return (
+                    item.sku.toLowerCase().includes(searchTerm) ||
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    (item.category && item.category.toLowerCase().includes(searchTerm)) ||
+                    (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
+                    (item.color && item.color.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            renderInventory(filteredItems);
+        }
+        
+        async function handleAddStock(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: stockBatchId.value,
+                    sku: stockSku.value,
+                    type: 'IN',
+                    qty: parseInt(stockQty.value),
+                    expiry_date: stockExpiryDate.value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Added ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                addStockForm.reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                stockBatchId.value = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+            } catch (error) {
+                showError('Failed to add stock. Please try again.');
+                console.error('Error adding stock:', error);
+            }
+        }
+        
+        async function handleRecordSale(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: saleBatchId.value,
+                    sku: saleSku.value,
+                    type: 'OUT',
+                    qty: parseInt(saleQty.value),
+                    expiry_date: ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Recorded sale of ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                recordSaleForm.reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                saleBatchId.value = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+            } catch (error) {
+                showError('Failed to record sale. Please try again.');
+                console.error('Error recording sale:', error);
+            }
+        }
+        
+        async function quickAddStock(sku) {
+            try {
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                const batchId = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                const payload = {
+                    batch_id: batchId,
+                    sku: sku,
+                    type: 'IN',
+                    qty: 1,
+                    expiry_date: ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Added 1 unit of ${sku}`);
+                await loadInventory();
+            } catch (error) {
+                showError('Failed to add stock. Please try again.');
+                console.error('Error adding stock:', error);
+            }
+        }
+        
+        async function quickRecordSale(sku) {
+            try {
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                const batchId = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                const payload = {
+                    batch_id: batchId,
+                    sku: sku,
+                    type: 'OUT',
+                    qty: 1,
+                    expiry_date: ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Recorded sale of 1 unit of ${sku}`);
+                await loadInventory();
+            } catch (error) {
+                showError('Failed to record sale. Please try again.');
+                console.error('Error recording sale:', error);
+            }
+        }
+        
+        async function postMovement(payload) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to post movement');
+            }
+            
+            return response.json();
+        }
+        
+        function openModal(modal) {
+            modal.style.display = 'block';
+        }
+        
+        function closeAllModals() {
+            addStockModal.style.display = 'none';
+            recordSaleModal.style.display = 'none';
+        }
+        
+        function showLoading(show) {
+            loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+        
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
