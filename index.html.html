@@ -68,6 +68,7 @@
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
         
         .summary-card h3 {
@@ -94,12 +95,14 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         
         .search-box {
             flex: 1;
+            min-width: 200px;
             max-width: 300px;
-            position: relative;
         }
         
         .search-box input {
@@ -110,6 +113,12 @@
             font-size: 0.9rem;
         }
         
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
         .btn {
             padding: 10px 15px;
             border: none;
@@ -118,6 +127,7 @@
             font-weight: 600;
             transition: all 0.3s ease;
             font-size: 0.9rem;
+            white-space: nowrap;
         }
         
         .btn-primary {
@@ -178,6 +188,7 @@
             padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #eee;
+            white-space: nowrap;
         }
         
         thead th {
@@ -210,6 +221,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
         }
         
         .modal-content {
@@ -222,6 +234,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
         }
         
         .close {
@@ -230,6 +243,7 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            line-height: 20px;
         }
         
         .close:hover {
@@ -281,23 +295,7 @@
         }
         
         .loading:after {
-            content: ".";
-            animation: dots 1s steps(5, end) infinite;
-        }
-        
-        @keyframes dots {
-            0%, 20% {
-                content: ".";
-            }
-            40% {
-                content: "..";
-            }
-            60% {
-                content: "...";
-            }
-            80%, 100% {
-                content: "";
-            }
+            content: "Loading...";
         }
         
         .message {
@@ -347,6 +345,11 @@
                 max-width: 100%;
                 width: 100%;
             }
+            
+            .btn-group {
+                width: 100%;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -385,7 +388,7 @@
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Search inventory...">
             </div>
-            <div>
+            <div class="btn-group">
                 <button id="addItemBtn" class="btn btn-primary">Add New Item</button>
                 <button id="addStockBtn" class="btn btn-success">Add Stock</button>
                 <button id="recordSaleBtn" class="btn btn-danger">Record Sale</button>
@@ -393,403 +396,12 @@
             </div>
         </div>
         
-        <div class="loading" id="loadingIndicator">Loading inventory data</div>
+        <div class="loading" id="loadingIndicator">Loading inventory data...</div>
         
         <div class="table-container">
             <table id="inventoryTable">
                 <thead>
                     <tr>
-                        <td colspan="11" style="text-align: center; padding: 20px;">
-                            No inventory items found.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            items.forEach(item => {
-                const row = document.createElement('tr');
-                
-                // Apply low stock class if qty is at or below reorder point
-                if (item.qty_on_hand <= item.reorder_point) {
-                    row.classList.add('low-stock');
-                }
-                
-                row.innerHTML = `
-                    <td>${item.sku}</td>
-                    <td>${item.name}</td>
-                    <td>${item.category || 'N/A'}</td>
-                    <td>${item.brand || 'N/A'}</td>
-                    <td>${item.color || 'N/A'}</td>
-                    <td>${formatCurrency(item.sell_price)}</td>
-                    <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
-                    <td>${item.qty_on_hand}</td>
-                    <td>${formatCurrency(item.inventory_value || 0)}</td>
-                    <td>
-                        ${item.qty_on_hand <= item.reorder_point ? 
-                            `<span class="badge badge-danger">Low Stock</span>` : 
-                            ''}
-                    </td>
-                    <td>
-                        <button class="btn btn-success btn-sm" onclick="quickAddStock('${item.sku}')">+</button>
-                        <button class="btn btn-danger btn-sm" onclick="quickRecordSale('${item.sku}')">-</button>
-                    </td>
-                `;
-                
-                inventoryBody.appendChild(row);
-            });
-        }
-        
-        function filterInventory() {
-            const searchTerm = searchInput.value.toLowerCase();
-            
-            if (!searchTerm) {
-                renderInventory(inventoryData);
-                return;
-            }
-            
-            const filteredItems = inventoryData.filter(item => {
-                return (
-                    item.sku.toLowerCase().includes(searchTerm) ||
-                    item.name.toLowerCase().includes(searchTerm) ||
-                    (item.category && item.category.toLowerCase().includes(searchTerm)) ||
-                    (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
-                    (item.color && item.color.toLowerCase().includes(searchTerm))
-                );
-            });
-            
-            renderInventory(filteredItems);
-        }
-        
-        async function generateSku() {
-            const category = itemCategory.value;
-            
-            if (!category) {
-                showError('Please select a category first.');
-                return;
-            }
-            
-            let queryParams = `?action=generateSku&category=${encodeURIComponent(category)}`;
-            
-            // Add dynamic field values to query
-            const foodType = document.getElementById('foodType');
-            if (foodType && foodType.value) {
-                queryParams += `&foodType=${encodeURIComponent(foodType.value)}`;
-            }
-            
-            const itemVariation = document.getElementById('itemVariation');
-            if (itemVariation && itemVariation.value) {
-                queryParams += `&variation=${encodeURIComponent(itemVariation.value)}`;
-            }
-            
-            const itemBrand = document.getElementById('itemBrand');
-            if (itemBrand && itemBrand.value) {
-                queryParams += `&brand=${encodeURIComponent(itemBrand.value)}`;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}${queryParams}`);
-                
-                if (!response.ok) {
-                    throw new Error('Failed to generate SKU');
-                }
-                
-                const data = await response.json();
-                itemSku.value = data.sku;
-                
-            } catch (error) {
-                showError('Failed to generate SKU. Please try again.');
-                console.error('Error generating SKU:', error);
-            }
-        }
-        
-        async function handleAddItem(e) {
-            e.preventDefault();
-            
-            // Validate SKU
-            if (!itemSku.value) {
-                showError('Please generate a SKU first.');
-                return;
-            }
-            
-            try {
-                const payload = {
-                    action: 'addItem',
-                    sku: itemSku.value,
-                    name: itemName.value,
-                    category: itemCategory.value,
-                    brand: document.getElementById('itemBrand')?.value || '',
-                    gender: '',
-                    color: document.getElementById('itemColor')?.value || '',
-                    sell_price: parseFloat(itemSellPrice.value),
-                    unit_cost: parseFloat(itemUnitCost.value),
-                    reorder_point: parseInt(itemReorderPoint.value),
-                    initial_stock: parseInt(itemInitialStock.value),
-                    batch_id: `INIT-${new Date().toISOString().slice(0, 10)}`
-                };
-                
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to add item');
-                }
-                
-                const result = await response.json();
-                
-                if (result.status === 'ok') {
-                    showSuccess(`Item ${payload.sku} added successfully`);
-                    closeAllModals();
-                    addItemForm.reset();
-                    await loadInventory();
-                    await loadFinancialSummary();
-                } else {
-                    showError(result.message || 'Failed to add item');
-                }
-                
-            } catch (error) {
-                showError('Failed to add item. Please try again.');
-                console.error('Error adding item:', error);
-            }
-        }
-        
-        async function handleAddStock(e) {
-            e.preventDefault();
-            
-            try {
-                const payload = {
-                    batch_id: stockBatchId.value,
-                    sku: stockSku.value,
-                    type: 'IN',
-                    qty: parseInt(stockQty.value),
-                    unit_price: parseFloat(stockUnitPrice.value),
-                    expiry_date: stockExpiryDate.value || '',
-                    notes: stockNotes.value || ''
-                };
-                
-                await postMovement(payload);
-                showSuccess(`Added ${payload.qty} units of ${payload.sku}`);
-                closeAllModals();
-                addStockForm.reset();
-                
-                // Update batch ID for next use
-                const today = new Date();
-                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                stockBatchId.value = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-                
-                await loadInventory();
-                await loadFinancialSummary();
-            } catch (error) {
-                showError('Failed to add stock. Please try again.');
-                console.error('Error adding stock:', error);
-            }
-        }
-        
-        async function handleRecordSale(e) {
-            e.preventDefault();
-            
-            try {
-                const payload = {
-                    batch_id: saleBatchId.value,
-                    sku: saleSku.value,
-                    type: 'OUT',
-                    qty: parseInt(saleQty.value),
-                    unit_price: parseFloat(saleUnitPrice.value),
-                    expiry_date: '',
-                    notes: saleNotes.value || ''
-                };
-                
-                await postMovement(payload);
-                showSuccess(`Recorded sale of ${payload.qty} units of ${payload.sku}`);
-                closeAllModals();
-                recordSaleForm.reset();
-                
-                // Update batch ID for next use
-                const today = new Date();
-                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                saleBatchId.value = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-                
-                await loadInventory();
-                await loadFinancialSummary();
-            } catch (error) {
-                showError('Failed to record sale. Please try again.');
-                console.error('Error recording sale:', error);
-            }
-        }
-        
-        async function handleTransform(e) {
-            e.preventDefault();
-            
-            try {
-                const payload = {
-                    batch_id: transformBatchId.value,
-                    sku: transformSourceSku.value,
-                    type: 'TRANSFORM',
-                    qty: parseInt(transformQty.value),
-                    target_sku: transformTargetSku.value,
-                    transformation_cost: parseFloat(transformCost.value || 0),
-                    expiry_date: '',
-                    notes: transformNotes.value || ''
-                };
-                
-                await postMovement(payload);
-                showSuccess(`Transformed ${payload.qty} units from ${payload.sku} to ${payload.target_sku}`);
-                closeAllModals();
-                transformForm.reset();
-                
-                // Update batch ID for next use
-                const today = new Date();
-                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                transformBatchId.value = `T${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-                
-                await loadInventory();
-                await loadFinancialSummary();
-            } catch (error) {
-                showError('Failed to transform product. Please try again.');
-                console.error('Error transforming product:', error);
-            }
-        }
-        
-        async function quickAddStock(sku) {
-            try {
-                // Look up the item to get unit cost
-                const item = inventoryData.find(i => i.sku === sku);
-                const unitCost = item ? item.unit_cost : 0;
-                
-                const today = new Date();
-                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                const batchId = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-                
-                const payload = {
-                    batch_id: batchId,
-                    sku: sku,
-                    type: 'IN',
-                    qty: 1,
-                    unit_price: unitCost,
-                    expiry_date: '',
-                    notes: 'Quick add'
-                };
-                
-                await postMovement(payload);
-                showSuccess(`Added 1 unit of ${sku}`);
-                await loadInventory();
-                await loadFinancialSummary();
-            } catch (error) {
-                showError('Failed to add stock. Please try again.');
-                console.error('Error adding stock:', error);
-            }
-        }
-        
-        async function quickRecordSale(sku) {
-            try {
-                // Look up the item to get selling price
-                const item = inventoryData.find(i => i.sku === sku);
-                const sellPrice = item ? item.sell_price : 0;
-                
-                const today = new Date();
-                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                const batchId = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
-                
-                const payload = {
-                    batch_id: batchId,
-                    sku: sku,
-                    type: 'OUT',
-                    qty: 1,
-                    unit_price: sellPrice,
-                    expiry_date: '',
-                    notes: 'Quick sale'
-                };
-                
-                await postMovement(payload);
-                showSuccess(`Recorded sale of 1 unit of ${sku}`);
-                await loadInventory();
-                await loadFinancialSummary();
-            } catch (error) {
-                showError('Failed to record sale. Please try again.');
-                console.error('Error recording sale:', error);
-            }
-        }
-        
-        async function postMovement(payload) {
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to post movement');
-            }
-            
-            return response.json();
-        }
-        
-        function openModal(modal) {
-            modal.style.display = 'block';
-            
-            // Pre-fill unit prices if opening stock or sale modals
-            if (modal === addStockModal) {
-                const sku = stockSku.value;
-                if (sku) {
-                    const item = inventoryData.find(i => i.sku === sku);
-                    if (item) {
-                        stockUnitPrice.value = item.unit_cost || '';
-                    }
-                }
-            } else if (modal === recordSaleModal) {
-                const sku = saleSku.value;
-                if (sku) {
-                    const item = inventoryData.find(i => i.sku === sku);
-                    if (item) {
-                        saleUnitPrice.value = item.sell_price || '';
-                    }
-                }
-            }
-        }
-        
-        function closeAllModals() {
-            addStockModal.style.display = 'none';
-            recordSaleModal.style.display = 'none';
-            transformModal.style.display = 'none';
-            addItemModal.style.display = 'none';
-        }
-        
-        function showLoading(show) {
-            loadingIndicator.style.display = show ? 'block' : 'none';
-        }
-        
-        function showSuccess(message) {
-            successMessage.textContent = message;
-            successMessage.style.display = 'block';
-            
-            setTimeout(() => {
-                successMessage.style.display = 'none';
-            }, 3000);
-        }
-        
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.style.display = 'block';
-            
-            setTimeout(() => {
-                errorMessage.style.display = 'none';
-            }, 5000);
-        }
-        
-        function formatCurrency(amount) {
-            return new Intl.NumberFormat('en-PH', {
-                style: 'currency',
-                currency: 'PHP'
-            }).format(amount);
-        }
-        
-        // Make quick actions available globally
-        window.quickAddStock = quickAddStock;
-        window.quickRecordSale = quickRecordSale;
-    </script>
-</body>
-</html>
                         <th>SKU</th>
                         <th>Name</th>
                         <th>Category</th>
@@ -803,7 +415,13 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="inventoryBody"></tbody>
+                <tbody id="inventoryBody">
+                    <tr>
+                        <td colspan="11" style="text-align: center; padding: 20px;">
+                            Loading inventory data...
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -986,128 +604,84 @@
         // Configuration - REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbz_BMwIB1uMkMJL-Oh65Ylgd7wdtj1yqA6rvC5yL4hxZ3q6I8Hcy_yA5GLPIQv5-cfYxw/exec';
         
-        // DOM Elements
-        const inventoryTable = document.getElementById('inventoryTable');
-        const inventoryBody = document.getElementById('inventoryBody');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const searchInput = document.getElementById('searchInput');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const addItemBtn = document.getElementById('addItemBtn');
-        const addStockBtn = document.getElementById('addStockBtn');
-        const recordSaleBtn = document.getElementById('recordSaleBtn');
-        const transformBtn = document.getElementById('transformBtn');
-        const successMessage = document.getElementById('successMessage');
-        const errorMessage = document.getElementById('errorMessage');
-        
-        // Financial Summary Elements
-        const totalRevenueElement = document.getElementById('totalRevenue');
-        const totalCostElement = document.getElementById('totalCost');
-        const totalProfitElement = document.getElementById('totalProfit');
-        const grossMarginElement = document.getElementById('grossMargin');
-        
-        // Add Stock Modal Elements
-        const addStockModal = document.getElementById('addStockModal');
-        const addStockForm = document.getElementById('addStockForm');
-        const stockSku = document.getElementById('stockSku');
-        const stockQty = document.getElementById('stockQty');
-        const stockUnitPrice = document.getElementById('stockUnitPrice');
-        const stockBatchId = document.getElementById('stockBatchId');
-        const stockExpiryDate = document.getElementById('stockExpiryDate');
-        const stockNotes = document.getElementById('stockNotes');
-        
-        // Record Sale Modal Elements
-        const recordSaleModal = document.getElementById('recordSaleModal');
-        const recordSaleForm = document.getElementById('recordSaleForm');
-        const saleSku = document.getElementById('saleSku');
-        const saleQty = document.getElementById('saleQty');
-        const saleUnitPrice = document.getElementById('saleUnitPrice');
-        const saleBatchId = document.getElementById('saleBatchId');
-        const saleNotes = document.getElementById('saleNotes');
-        
-        // Transform Modal Elements
-        const transformModal = document.getElementById('transformModal');
-        const transformForm = document.getElementById('transformForm');
-        const transformSourceSku = document.getElementById('transformSourceSku');
-        const transformTargetSku = document.getElementById('transformTargetSku');
-        const transformQty = document.getElementById('transformQty');
-        const transformCost = document.getElementById('transformCost');
-        const transformBatchId = document.getElementById('transformBatchId');
-        const transformNotes = document.getElementById('transformNotes');
-        
-        // Add Item Modal Elements
-        const addItemModal = document.getElementById('addItemModal');
-        const addItemForm = document.getElementById('addItemForm');
-        const itemCategory = document.getElementById('itemCategory');
-        const dynamicFields = document.getElementById('dynamicFields');
-        const itemSku = document.getElementById('itemSku');
-        const generateSkuBtn = document.getElementById('generateSkuBtn');
-        const itemName = document.getElementById('itemName');
-        const itemSellPrice = document.getElementById('itemSellPrice');
-        const itemUnitCost = document.getElementById('itemUnitCost');
-        const itemReorderPoint = document.getElementById('itemReorderPoint');
-        const itemInitialStock = document.getElementById('itemInitialStock');
-        
-        // Close buttons
-        const closeButtons = document.querySelectorAll('.close, .close-modal');
-        
         // Store inventory data
         let inventoryData = [];
         let categoryDetails = {};
         
         // Initialize
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+        });
         
         async function init() {
-            await loadCategories();
-            loadInventory();
-            loadFinancialSummary();
-            setupEventListeners();
-            
-            // Set default batch IDs with current date
-            const today = new Date();
-            const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-            stockBatchId.value = `B${dateStr}-01`;
-            saleBatchId.value = `S${dateStr}-01`;
-            transformBatchId.value = `T${dateStr}-01`;
+            try {
+                await loadCategories();
+                await loadInventory();
+                await loadFinancialSummary();
+                setupEventListeners();
+                
+                // Set default batch IDs with current date
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('stockBatchId').value = `B${dateStr}-01`;
+                document.getElementById('saleBatchId').value = `S${dateStr}-01`;
+                document.getElementById('transformBatchId').value = `T${dateStr}-01`;
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError('Failed to initialize system. Please check connection.');
+            }
         }
         
         function setupEventListeners() {
             // Button clicks
-            refreshBtn.addEventListener('click', () => {
-                loadInventory();
-                loadFinancialSummary();
+            document.getElementById('refreshBtn').addEventListener('click', async function() {
+                await loadInventory();
+                await loadFinancialSummary();
             });
-            addItemBtn.addEventListener('click', () => openModal(addItemModal));
-            addStockBtn.addEventListener('click', () => openModal(addStockModal));
-            recordSaleBtn.addEventListener('click', () => openModal(recordSaleModal));
-            transformBtn.addEventListener('click', () => openModal(transformModal));
+            
+            document.getElementById('addItemBtn').addEventListener('click', function() {
+                openModal(document.getElementById('addItemModal'));
+            });
+            
+            document.getElementById('addStockBtn').addEventListener('click', function() {
+                openModal(document.getElementById('addStockModal'));
+            });
+            
+            document.getElementById('recordSaleBtn').addEventListener('click', function() {
+                openModal(document.getElementById('recordSaleModal'));
+            });
+            
+            document.getElementById('transformBtn').addEventListener('click', function() {
+                openModal(document.getElementById('transformModal'));
+            });
             
             // Close modal buttons
-            closeButtons.forEach(btn => {
+            const closeButtons = document.querySelectorAll('.close, .close-modal');
+            closeButtons.forEach(function(btn) {
                 btn.addEventListener('click', closeAllModals);
             });
             
             // Close modal when clicking outside
-            window.addEventListener('click', (e) => {
+            window.addEventListener('click', function(e) {
                 if (e.target.classList.contains('modal')) {
                     closeAllModals();
                 }
             });
             
             // Form submissions
-            addStockForm.addEventListener('submit', handleAddStock);
-            recordSaleForm.addEventListener('submit', handleRecordSale);
-            transformForm.addEventListener('submit', handleTransform);
-            addItemForm.addEventListener('submit', handleAddItem);
+            document.getElementById('addStockForm').addEventListener('submit', handleAddStock);
+            document.getElementById('recordSaleForm').addEventListener('submit', handleRecordSale);
+            document.getElementById('transformForm').addEventListener('submit', handleTransform);
+            document.getElementById('addItemForm').addEventListener('submit', handleAddItem);
             
             // Add Item category change event
-            itemCategory.addEventListener('change', handleCategoryChange);
+            document.getElementById('itemCategory').addEventListener('change', handleCategoryChange);
             
             // Generate SKU button
-            generateSkuBtn.addEventListener('click', generateSku);
+            document.getElementById('generateSkuBtn').addEventListener('click', generateSku);
             
             // Search functionality
-            searchInput.addEventListener('input', filterInventory);
+            document.getElementById('searchInput').addEventListener('input', filterInventory);
         }
         
         async function loadCategories() {
@@ -1119,10 +693,11 @@
                 }
                 
                 const categories = await response.json();
+                const itemCategory = document.getElementById('itemCategory');
                 
                 // Populate category dropdown
                 itemCategory.innerHTML = '<option value="">Select Category</option>';
-                categories.forEach(category => {
+                categories.forEach(function(category) {
                     const option = document.createElement('option');
                     option.value = category;
                     option.textContent = category;
@@ -1131,15 +706,18 @@
                 
             } catch (error) {
                 console.error('Error loading categories:', error);
+                showError('Failed to load categories.');
             }
         }
         
         async function handleCategoryChange() {
+            const itemCategory = document.getElementById('itemCategory');
             const category = itemCategory.value;
+            const dynamicFields = document.getElementById('dynamicFields');
             
             if (!category) {
                 dynamicFields.innerHTML = '';
-                itemSku.value = '';
+                document.getElementById('itemSku').value = '';
                 return;
             }
             
@@ -1205,7 +783,7 @@
                 }
                 
                 dynamicFields.innerHTML = html;
-                itemSku.value = '';
+                document.getElementById('itemSku').value = '';
                 
             } catch (error) {
                 console.error('Error loading category details:', error);
@@ -1216,7 +794,6 @@
         async function loadInventory() {
             try {
                 showLoading(true);
-                inventoryTable.style.display = 'none';
                 
                 const response = await fetch(`${API_URL}?action=getInventory`);
                 
@@ -1229,9 +806,8 @@
                 
                 renderInventory(data);
                 showLoading(false);
-                inventoryTable.style.display = 'table';
             } catch (error) {
-                showError('Failed to load inventory data. Please try again.');
+                showError('Failed to load inventory data. Please check your connection.');
                 console.error('Error loading inventory:', error);
                 showLoading(false);
             }
@@ -1247,11 +823,14 @@
                 
                 const data = await response.json();
                 
-                totalRevenueElement.textContent = formatCurrency(data.total_revenue);
-                totalCostElement.textContent = formatCurrency(data.total_cost);
-                totalProfitElement.textContent = formatCurrency(data.total_profit);
-                totalProfitElement.className = `amount ${data.total_profit >= 0 ? 'positive' : 'negative'}`;
-                grossMarginElement.textContent = `${data.gross_margin.toFixed(2)}%`;
+                document.getElementById('totalRevenue').textContent = formatCurrency(data.total_revenue);
+                document.getElementById('totalCost').textContent = formatCurrency(data.total_cost);
+                document.getElementById('totalProfit').textContent = formatCurrency(data.total_profit);
+                
+                const profitElement = document.getElementById('totalProfit');
+                profitElement.className = `amount ${data.total_profit >= 0 ? 'positive' : 'negative'}`;
+                
+                document.getElementById('grossMargin').textContent = `${data.gross_margin.toFixed(2)}%`;
                 
             } catch (error) {
                 console.error('Error loading financial summary:', error);
@@ -1259,8 +838,404 @@
         }
         
         function renderInventory(items) {
+            const inventoryBody = document.getElementById('inventoryBody');
             inventoryBody.innerHTML = '';
             
             if (items.length === 0) {
                 inventoryBody.innerHTML = `
                     <tr>
+                        <td colspan="11" style="text-align: center; padding: 20px;">
+                            No inventory items found.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            items.forEach(function(item) {
+                const row = document.createElement('tr');
+                
+                // Apply low stock class if qty is at or below reorder point
+                if (item.qty_on_hand <= item.reorder_point) {
+                    row.classList.add('low-stock');
+                }
+                
+                row.innerHTML = `
+                    <td>${item.sku}</td>
+                    <td>${item.name}</td>
+                    <td>${item.category || 'N/A'}</td>
+                    <td>${item.brand || 'N/A'}</td>
+                    <td>${item.color || 'N/A'}</td>
+                    <td>${formatCurrency(item.sell_price)}</td>
+                    <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
+                    <td>${item.qty_on_hand}</td>
+                    <td>${formatCurrency(item.inventory_value || 0)}</td>
+                    <td>
+                        ${item.qty_on_hand <= item.reorder_point ? 
+                            '<span class="badge badge-danger">Low Stock</span>' : 
+                            ''}
+                    </td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="quickAddStock('${item.sku}')">+</button>
+                        <button class="btn btn-danger btn-sm" onclick="quickRecordSale('${item.sku}')">-</button>
+                    </td>
+                `;
+                
+                inventoryBody.appendChild(row);
+            });
+        }
+        
+        function filterInventory() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderInventory(inventoryData);
+                return;
+            }
+            
+            const filteredItems = inventoryData.filter(function(item) {
+                return (
+                    item.sku.toLowerCase().includes(searchTerm) ||
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    (item.category && item.category.toLowerCase().includes(searchTerm)) ||
+                    (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
+                    (item.color && item.color.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            renderInventory(filteredItems);
+        }
+        
+        async function generateSku() {
+            const itemCategory = document.getElementById('itemCategory');
+            const category = itemCategory.value;
+            
+            if (!category) {
+                showError('Please select a category first.');
+                return;
+            }
+            
+            let queryParams = `?action=generateSku&category=${encodeURIComponent(category)}`;
+            
+            // Add dynamic field values to query
+            const foodType = document.getElementById('foodType');
+            if (foodType && foodType.value) {
+                queryParams += `&foodType=${encodeURIComponent(foodType.value)}`;
+            }
+            
+            const itemVariation = document.getElementById('itemVariation');
+            if (itemVariation && itemVariation.value) {
+                queryParams += `&variation=${encodeURIComponent(itemVariation.value)}`;
+            }
+            
+            const itemBrand = document.getElementById('itemBrand');
+            if (itemBrand && itemBrand.value) {
+                queryParams += `&brand=${encodeURIComponent(itemBrand.value)}`;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}${queryParams}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate SKU');
+                }
+                
+                const data = await response.json();
+                document.getElementById('itemSku').value = data.sku;
+                
+            } catch (error) {
+                showError('Failed to generate SKU. Please try again.');
+                console.error('Error generating SKU:', error);
+            }
+        }
+        
+        async function handleAddItem(e) {
+            e.preventDefault();
+            
+            const itemSku = document.getElementById('itemSku');
+            
+            // Validate SKU
+            if (!itemSku.value) {
+                showError('Please generate a SKU first.');
+                return;
+            }
+            
+            try {
+                const payload = {
+                    action: 'addItem',
+                    sku: itemSku.value,
+                    name: document.getElementById('itemName').value,
+                    category: document.getElementById('itemCategory').value,
+                    brand: document.getElementById('itemBrand')?.value || '',
+                    gender: '',
+                    color: document.getElementById('itemColor')?.value || '',
+                    sell_price: parseFloat(document.getElementById('itemSellPrice').value),
+                    unit_cost: parseFloat(document.getElementById('itemUnitCost').value),
+                    reorder_point: parseInt(document.getElementById('itemReorderPoint').value),
+                    initial_stock: parseInt(document.getElementById('itemInitialStock').value),
+                    batch_id: `INIT-${new Date().toISOString().slice(0, 10)}`
+                };
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add item');
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    showSuccess(`Item ${payload.sku} added successfully`);
+                    closeAllModals();
+                    document.getElementById('addItemForm').reset();
+                    await loadInventory();
+                    await loadFinancialSummary();
+                } else {
+                    showError(result.message || 'Failed to add item');
+                }
+                
+            } catch (error) {
+                showError('Failed to add item. Please try again.');
+                console.error('Error adding item:', error);
+            }
+        }
+        
+        async function handleAddStock(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('stockBatchId').value,
+                    sku: document.getElementById('stockSku').value,
+                    type: 'IN',
+                    qty: parseInt(document.getElementById('stockQty').value),
+                    unit_price: parseFloat(document.getElementById('stockUnitPrice').value),
+                    expiry_date: document.getElementById('stockExpiryDate').value || '',
+                    notes: document.getElementById('stockNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Added ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                document.getElementById('addStockForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('stockBatchId').value = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to add stock. Please try again.');
+                console.error('Error adding stock:', error);
+            }
+        }
+        
+        async function handleRecordSale(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('saleBatchId').value,
+                    sku: document.getElementById('saleSku').value,
+                    type: 'OUT',
+                    qty: parseInt(document.getElementById('saleQty').value),
+                    unit_price: parseFloat(document.getElementById('saleUnitPrice').value),
+                    expiry_date: '',
+                    notes: document.getElementById('saleNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Recorded sale of ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                document.getElementById('recordSaleForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('saleBatchId').value = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to record sale. Please try again.');
+                console.error('Error recording sale:', error);
+            }
+        }
+        
+        async function handleTransform(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('transformBatchId').value,
+                    sku: document.getElementById('transformSourceSku').value,
+                    type: 'TRANSFORM',
+                    qty: parseInt(document.getElementById('transformQty').value),
+                    target_sku: document.getElementById('transformTargetSku').value,
+                    transformation_cost: parseFloat(document.getElementById('transformCost').value || 0),
+                    expiry_date: '',
+                    notes: document.getElementById('transformNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Transformed ${payload.qty} units from ${payload.sku} to ${payload.target_sku}`);
+                closeAllModals();
+                document.getElementById('transformForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('transformBatchId').value = `T${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to transform product. Please try again.');
+                console.error('Error transforming product:', error);
+            }
+        }
+        
+        async function postMovement(payload) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to post movement');
+            }
+            
+            return response.json();
+        }
+        
+        function openModal(modal) {
+            modal.style.display = 'block';
+            
+            // Pre-fill unit prices if opening stock or sale modals
+            if (modal.id === 'addStockModal') {
+                const sku = document.getElementById('stockSku').value;
+                if (sku) {
+                    const item = inventoryData.find(i => i.sku === sku);
+                    if (item) {
+                        document.getElementById('stockUnitPrice').value = item.unit_cost || '';
+                    }
+                }
+            } else if (modal.id === 'recordSaleModal') {
+                const sku = document.getElementById('saleSku').value;
+                if (sku) {
+                    const item = inventoryData.find(i => i.sku === sku);
+                    if (item) {
+                        document.getElementById('saleUnitPrice').value = item.sell_price || '';
+                    }
+                }
+            }
+        }
+        
+        function closeAllModals() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(function(modal) {
+                modal.style.display = 'none';
+            });
+        }
+        
+        function showLoading(show) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+        
+        function showSuccess(message) {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            
+            setTimeout(function() {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            setTimeout(function() {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP'
+            }).format(amount);
+        }
+        
+        // Global functions for quick actions
+        window.quickAddStock = async function(sku) {
+            try {
+                // Look up the item to get unit cost
+                const item = inventoryData.find(i => i.sku === sku);
+                const unitCost = item ? item.unit_cost : 0;
+                
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                const batchId = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                const payload = {
+                    batch_id: batchId,
+                    sku: sku,
+                    type: 'IN',
+                    qty: 1,
+                    unit_price: unitCost,
+                    expiry_date: '',
+                    notes: 'Quick add'
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Added 1 unit of ${sku}`);
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to add stock. Please try again.');
+                console.error('Error adding stock:', error);
+            }
+        };
+        
+        window.quickRecordSale = async function(sku) {
+            try {
+                // Look up the item to get selling price
+                const item = inventoryData.find(i => i.sku === sku);
+                const sellPrice = item ? item.sell_price : 0;
+                
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                const batchId = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                const payload = {
+                    batch_id: batchId,
+                    sku: sku,
+                    type: 'OUT',
+                    qty: 1,
+                    unit_price: sellPrice,
+                    expiry_date: '',
+                    notes: 'Quick sale'
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Recorded sale of 1 unit of ${sku}`);
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to record sale. Please try again.');
+                console.error('Error recording sale:', error);
+            }
+        };
+    </script>
+</body>
+</html>
