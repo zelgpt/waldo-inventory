@@ -257,6 +257,25 @@
             color: #991b1b;
             border-left: 4px solid #dc2626;
         }
+
+        .table-container {
+    max-height: 70vh; /* Adjust this value as needed */
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+}
+        
     </style>
 </head>
 <body>
@@ -284,22 +303,24 @@
         
         <div class="loading" id="loadingIndicator">Loading inventory data</div>
         
-        <table id="inventoryTable">
-            <thead>
-                <tr>
-                    <th>SKU</th>
-                    <th>Name</th>
-                    <th>Category</th>
-                    <th>Brand</th>
-                    <th>Color</th>
-                    <th>Price</th>
-                    <th>Quantity</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="inventoryBody"></tbody>
-        </table>
+        <div class="table-container">
+    <table id="inventoryTable">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Brand</th>
+                <th>Color</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="inventoryBody"></tbody>
+    </table>
+</div>
     </div>
     
     <!-- Add Stock Modal -->
