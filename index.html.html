@@ -292,17 +292,17 @@
         }
 
         .badge-success {
-    background-color: #d1fae5;
-    color: #065f46;
-}
+            background-color: #d1fae5;
+            color: #065f46;
+        }
 
-.out-of-stock {
-    background-color: #fee2e2;
-}
+        .out-of-stock {
+            background-color: #fee2e2;
+        }
 
-.out-of-stock:hover {
-    background-color: #fecaca;
-}
+        .out-of-stock:hover {
+            background-color: #fecaca;
+        }
         
         .loading {
             display: none;
@@ -310,9 +310,9 @@
             padding: 40px;
         }
         
-       .loading:after {
-    content: "";
-}
+        .loading:after {
+            content: "";
+        }
         
         .message {
             padding: 10px 15px;
@@ -646,9 +646,9 @@
                 // Set default batch IDs with current date
                 const today = new Date();
                 const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                document.getElementById('stockBatchId').value = `B${dateStr}-01`;
-                document.getElementById('saleBatchId').value = `S${dateStr}-01`;
-                document.getElementById('transformBatchId').value = `T${dateStr}-01`;
+                document.getElementById('stockBatchId').value = 'B' + dateStr + '-01';
+                document.getElementById('saleBatchId').value = 'S' + dateStr + '-01';
+                document.getElementById('transformBatchId').value = 'T' + dateStr + '-01';
             } catch (error) {
                 console.error('Initialization error:', error);
                 showError('Failed to initialize system. Please check connection.');
@@ -730,7 +730,7 @@
         
         async function loadCategories() {
             try {
-                const response = await fetch(`${API_URL}?action=getCategories`);
+                const response = await fetch(API_URL + '?action=getCategories');
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch categories');
@@ -766,7 +766,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}?action=getCategoryDetails&category=${encodeURIComponent(category)}`);
+                const response = await fetch(API_URL + '?action=getCategoryDetails&category=' + encodeURIComponent(category));
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch category details');
@@ -779,51 +779,19 @@
                 let html = '';
                 
                 if (details.has_food_type) {
-                    html += `
-                        <div class="form-group">
-                            <label for="foodType">Food Type</label>
-                            <select id="foodType" required>
-                                <option value="">Select Type</option>
-                                <option value="SISIG">SISIG</option>
-                                <option value="PARES">PARES</option>
-                                <option value="CRISPY PATA">CRISPY PATA</option>
-                                <option value="OTHER">OTHER</option>
-                            </select>
-                        </div>
-                    `;
+                    html += '<div class="form-group"><label for="foodType">Food Type</label><select id="foodType" required><option value="">Select Type</option><option value="SISIG">SISIG</option><option value="PARES">PARES</option><option value="CRISPY PATA">CRISPY PATA</option><option value="OTHER">OTHER</option></select></div>';
                 }
                 
                 if (details.has_variation) {
-                    html += `
-                        <div class="form-group">
-                            <label for="itemVariation">Variation</label>
-                            <select id="itemVariation">
-                                <option value="REG">Regular</option>
-                                <option value="FRZ">Frozen</option>
-                                <option value="CKD">Cooked</option>
-                                <option value="SPY">Spicy</option>
-                                <option value="STD">Standard</option>
-                            </select>
-                        </div>
-                    `;
+                    html += '<div class="form-group"><label for="itemVariation">Variation</label><select id="itemVariation"><option value="REG">Regular</option><option value="FRZ">Frozen</option><option value="CKD">Cooked</option><option value="SPY">Spicy</option><option value="STD">Standard</option></select></div>';
                 }
                 
                 if (details.has_brand) {
-                    html += `
-                        <div class="form-group">
-                            <label for="itemBrand">Brand</label>
-                            <input type="text" id="itemBrand" placeholder="Enter brand">
-                        </div>
-                    `;
+                    html += '<div class="form-group"><label for="itemBrand">Brand</label><input type="text" id="itemBrand" placeholder="Enter brand"></div>';
                 }
                 
                 if (details.has_color) {
-                    html += `
-                        <div class="form-group">
-                            <label for="itemColor">Color</label>
-                            <input type="text" id="itemColor" placeholder="Enter color">
-                        </div>
-                    `;
+                    html += '<div class="form-group"><label for="itemColor">Color</label><input type="text" id="itemColor" placeholder="Enter color"></div>';
                 }
                 
                 dynamicFields.innerHTML = html;
@@ -839,7 +807,7 @@
             try {
                 showLoading(true);
                 
-                const response = await fetch(`${API_URL}?action=getInventory`);
+                const response = await fetch(API_URL + '?action=getInventory');
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch inventory data');
@@ -872,7 +840,7 @@
             
             // Add options for each item
             items.forEach(function(item) {
-                const optionText = `${item.sku} - ${item.name}`;
+                const optionText = item.sku + ' - ' + item.name;
                 
                 const stockOption = document.createElement('option');
                 stockOption.value = item.sku;
@@ -898,7 +866,7 @@
         
         async function loadFinancialSummary() {
             try {
-                const response = await fetch(`${API_URL}?action=getFinancialSummary`);
+                const response = await fetch(API_URL + '?action=getFinancialSummary');
                 
                 if (!response.ok) {
                     throw new Error('Failed to fetch financial summary');
@@ -911,63 +879,54 @@
                 document.getElementById('totalProfit').textContent = formatCurrency(data.total_profit);
                 
                 const profitElement = document.getElementById('totalProfit');
-                profitElement.className = `amount ${data.total_profit >= 0 ? 'positive' : 'negative'}`;
+                profitElement.className = 'amount ' + (data.total_profit >= 0 ? 'positive' : 'negative');
                 
-                document.getElementById('grossMargin').textContent = `${data.gross_margin.toFixed(2)}%`;
+                document.getElementById('grossMargin').textContent = data.gross_margin.toFixed(2) + '%';
                 
             } catch (error) {
                 console.error('Error loading financial summary:', error);
             }
         }
         
-function renderInventory(items) {
-    const inventoryBody = document.getElementById('inventoryBody');
-    inventoryBody.innerHTML = '';
-    
-    if (items.length === 0) {
-        inventoryBody.innerHTML = `
-            <tr>
-                <td colspan="10" style="text-align: center; padding: 20px;">
-                    No inventory items found.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    items.forEach(function(item) {
-        const row = document.createElement('tr');
-        
-        // Determine stock status
-        let stockStatus = '';
-        let statusClass = '';
-        
-        if (item.qty_on_hand <= 0) {
-            stockStatus = '<span class="badge badge-danger">Out of Stock</span>';
-            row.classList.add('out-of-stock');
-        } else if (item.qty_on_hand <= item.reorder_point) {
-            stockStatus = '<span class="badge badge-danger">Low Stock</span>';
-            row.classList.add('low-stock');
-        } else {
-            stockStatus = '<span class="badge badge-success">In Stock</span>';
+        function renderInventory(items) {
+            const inventoryBody = document.getElementById('inventoryBody');
+            inventoryBody.innerHTML = '';
+            
+            if (items.length === 0) {
+                inventoryBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 20px;">No inventory items found.</td></tr>';
+                return;
+            }
+            
+            items.forEach(function(item) {
+                const row = document.createElement('tr');
+                
+                // Determine stock status
+                let stockStatus = '';
+                
+                if (item.qty_on_hand <= 0) {
+                    stockStatus = '<span class="badge badge-danger">Out of Stock</span>';
+                    row.classList.add('out-of-stock');
+                } else if (item.qty_on_hand <= item.reorder_point) {
+                    stockStatus = '<span class="badge badge-danger">Low Stock</span>';
+                    row.classList.add('low-stock');
+                } else {
+                    stockStatus = '<span class="badge badge-success">In Stock</span>';
+                }
+                
+                row.innerHTML = '<td>' + item.sku + '</td>' +
+                    '<td>' + item.name + '</td>' +
+                    '<td>' + (item.category || 'N/A') + '</td>' +
+                    '<td>' + (item.brand || 'N/A') + '</td>' +
+                    '<td>' + (item.color || 'N/A') + '</td>' +
+                    '<td>' + formatCurrency(item.sell_price) + '</td>' +
+                    '<td>' + formatCurrency(item.avg_cost || item.unit_cost) + '</td>' +
+                    '<td>' + item.qty_on_hand + '</td>' +
+                    '<td>' + formatCurrency(item.inventory_value || 0) + '</td>' +
+                    '<td>' + stockStatus + '</td>';
+                
+                inventoryBody.appendChild(row);
+            });
         }
-        
-        row.innerHTML = `
-            <td>${item.sku}</td>
-            <td>${item.name}</td>
-            <td>${item.category || 'N/A'}</td>
-            <td>${item.brand || 'N/A'}</td>
-            <td>${item.color || 'N/A'}</td>
-            <td>${formatCurrency(item.sell_price)}</td>
-            <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
-            <td>${item.qty_on_hand}</td>
-            <td>${formatCurrency(item.inventory_value || 0)}</td>
-            <td>${stockStatus}</td>
-        `;
-        
-        inventoryBody.appendChild(row);
-    });
-}
         
         function filterInventory() {
             const searchInput = document.getElementById('searchInput');
@@ -1000,26 +959,26 @@ function renderInventory(items) {
                 return;
             }
             
-            let queryParams = `?action=generateSku&category=${encodeURIComponent(category)}`;
+            let queryParams = '?action=generateSku&category=' + encodeURIComponent(category);
             
             // Add dynamic field values to query
             const foodType = document.getElementById('foodType');
             if (foodType && foodType.value) {
-                queryParams += `&foodType=${encodeURIComponent(foodType.value)}`;
+                queryParams += '&foodType=' + encodeURIComponent(foodType.value);
             }
             
             const itemVariation = document.getElementById('itemVariation');
             if (itemVariation && itemVariation.value) {
-                queryParams += `&variation=${encodeURIComponent(itemVariation.value)}`;
+                queryParams += '&variation=' + encodeURIComponent(itemVariation.value);
             }
             
             const itemBrand = document.getElementById('itemBrand');
             if (itemBrand && itemBrand.value) {
-                queryParams += `&brand=${encodeURIComponent(itemBrand.value)}`;
+                queryParams += '&brand=' + encodeURIComponent(itemBrand.value);
             }
             
             try {
-                const response = await fetch(`${API_URL}${queryParams}`);
+                const response = await fetch(API_URL + queryParams);
                 
                 if (!response.ok) {
                     throw new Error('Failed to generate SKU');
@@ -1051,14 +1010,14 @@ function renderInventory(items) {
                     sku: itemSku.value,
                     name: document.getElementById('itemName').value,
                     category: document.getElementById('itemCategory').value,
-                    brand: document.getElementById('itemBrand')?.value || '',
+                    brand: (document.getElementById('itemBrand') && document.getElementById('itemBrand').value) || '',
                     gender: '',
-                    color: document.getElementById('itemColor')?.value || '',
+                    color: (document.getElementById('itemColor') && document.getElementById('itemColor').value) || '',
                     sell_price: parseFloat(document.getElementById('itemSellPrice').value),
                     unit_cost: parseFloat(document.getElementById('itemUnitCost').value),
                     reorder_point: parseInt(document.getElementById('itemReorderPoint').value),
                     initial_stock: parseInt(document.getElementById('itemInitialStock').value),
-                    batch_id: `INIT-${new Date().toISOString().slice(0, 10)}`
+                    batch_id: 'INIT-' + new Date().toISOString().slice(0, 10)
                 };
                 
                 const response = await fetch(API_URL, {
@@ -1073,7 +1032,7 @@ function renderInventory(items) {
                 const result = await response.json();
                 
                 if (result.status === 'ok') {
-                    showSuccess(`Item ${payload.sku} added successfully`);
+                    showSuccess('Item ' + payload.sku + ' added successfully');
                     closeAllModals();
                     document.getElementById('addItemForm').reset();
                     await loadInventory();
@@ -1103,14 +1062,14 @@ function renderInventory(items) {
                 };
                 
                 await postMovement(payload);
-                showSuccess(`Added ${payload.qty} units of ${payload.sku}`);
+                showSuccess('Added ' + payload.qty + ' units of ' + payload.sku);
                 closeAllModals();
                 document.getElementById('addStockForm').reset();
                 
                 // Update batch ID for next use
                 const today = new Date();
                 const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                document.getElementById('stockBatchId').value = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                document.getElementById('stockBatchId').value = 'B' + dateStr + '-' + Math.floor(Math.random() * 100).toString().padStart(2, '0');
                 
                 await loadInventory();
                 await loadFinancialSummary();
@@ -1135,14 +1094,14 @@ function renderInventory(items) {
                 };
                 
                 await postMovement(payload);
-                showSuccess(`Recorded sale of ${payload.qty} units of ${payload.sku}`);
+                showSuccess('Recorded sale of ' + payload.qty + ' units of ' + payload.sku);
                 closeAllModals();
                 document.getElementById('recordSaleForm').reset();
                 
                 // Update batch ID for next use
                 const today = new Date();
                 const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                document.getElementById('saleBatchId').value = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                document.getElementById('saleBatchId').value = 'S' + dateStr + '-' + Math.floor(Math.random() * 100).toString().padStart(2, '0');
                 
                 await loadInventory();
                 await loadFinancialSummary();
@@ -1168,14 +1127,14 @@ function renderInventory(items) {
                 };
                 
                 await postMovement(payload);
-                showSuccess(`Transformed ${payload.qty} units from ${payload.sku} to ${payload.target_sku}`);
+                showSuccess('Transformed ' + payload.qty + ' units from ' + payload.sku + ' to ' + payload.target_sku);
                 closeAllModals();
                 document.getElementById('transformForm').reset();
                 
                 // Update batch ID for next use
                 const today = new Date();
                 const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-                document.getElementById('transformBatchId').value = `T${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                document.getElementById('transformBatchId').value = 'T' + dateStr + '-' + Math.floor(Math.random() * 100).toString().padStart(2, '0');
                 
                 await loadInventory();
                 await loadFinancialSummary();
@@ -1246,3 +1205,5 @@ function renderInventory(items) {
             }).format(amount);
         }
     </script>
+</body>
+</html>
