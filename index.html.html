@@ -837,53 +837,58 @@
             }
         }
         
-        function renderInventory(items) {
-            const inventoryBody = document.getElementById('inventoryBody');
-            inventoryBody.innerHTML = '';
-            
-            if (items.length === 0) {
-                inventoryBody.innerHTML = `
-                    <tr>
-                        <td colspan="11" style="text-align: center; padding: 20px;">
-                            No inventory items found.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            items.forEach(function(item) {
-                const row = document.createElement('tr');
-                
-                // Apply low stock class if qty is at or below reorder point
-                if (item.qty_on_hand <= item.reorder_point) {
-                    row.classList.add('low-stock');
-                }
-                
-                row.innerHTML = `
-                    <td>${item.sku}</td>
-                    <td>${item.name}</td>
-                    <td>${item.category || 'N/A'}</td>
-                    <td>${item.brand || 'N/A'}</td>
-                    <td>${item.color || 'N/A'}</td>
-                    <td>${formatCurrency(item.sell_price)}</td>
-                    <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
-                    <td>${item.qty_on_hand}</td>
-                    <td>${formatCurrency(item.inventory_value || 0)}</td>
-                    <td>
-                        ${item.qty_on_hand <= item.reorder_point ? 
-                            '<span class="badge badge-danger">Low Stock</span>' : 
-                            ''}
-                    </td>
-                    <td>
-                        <button class="btn btn-success btn-sm" onclick="quickAddStock('${item.sku}')">+</button>
-                        <button class="btn btn-danger btn-sm" onclick="quickRecordSale('${item.sku}')">-</button>
-                    </td>
-                `;
-                
-                inventoryBody.appendChild(row);
-            });
+function renderInventory(items) {
+    const inventoryBody = document.getElementById('inventoryBody');
+    inventoryBody.innerHTML = '';
+    
+    if (items.length === 0) {
+        inventoryBody.innerHTML = `
+            <tr>
+                <td colspan="11" style="text-align: center; padding: 20px;">
+                    No inventory items found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    items.forEach(function(item) {
+        const row = document.createElement('tr');
+        
+        // Determine stock status
+        let stockStatus = '';
+        let statusClass = '';
+        
+        if (item.qty_on_hand <= 0) {
+            stockStatus = '<span class="badge badge-danger">Out of Stock</span>';
+            row.classList.add('out-of-stock');
+        } else if (item.qty_on_hand <= item.reorder_point) {
+            stockStatus = '<span class="badge badge-danger">Low Stock</span>';
+            row.classList.add('low-stock');
+        } else {
+            stockStatus = '<span class="badge badge-success">In Stock</span>';
         }
+        
+        row.innerHTML = `
+            <td>${item.sku}</td>
+            <td>${item.name}</td>
+            <td>${item.category || 'N/A'}</td>
+            <td>${item.brand || 'N/A'}</td>
+            <td>${item.color || 'N/A'}</td>
+            <td>${formatCurrency(item.sell_price)}</td>
+            <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
+            <td>${item.qty_on_hand}</td>
+            <td>${formatCurrency(item.inventory_value || 0)}</td>
+            <td>${stockStatus}</td>
+            <td>
+                <button class="btn btn-success btn-sm" onclick="quickAddStock('${item.sku}')">+</button>
+                <button class="btn btn-danger btn-sm" onclick="quickRecordSale('${item.sku}')">-</button>
+            </td>
+        `;
+        
+        inventoryBody.appendChild(row);
+    });
+}
         
         function filterInventory() {
             const searchInput = document.getElementById('searchInput');
