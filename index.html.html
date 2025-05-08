@@ -625,7 +625,7 @@
     
     <script>
         // Configuration - REPLACE WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
-        const API_URL = 'https://script.google.com/macros/s/AKfycbw49WRJWFt0NKRXaGsYR8Sl0xpTVkP1820vvCyhLC2QBVyRZ2BKBAXB0Km7YuIYxp-8jg/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbwkeOq8Vmiswl3YNyQciWCMWnxjdRuKgTOHNME9-P92SQB9rfRKtjST_ZC5xemO8aQ9PA/exec';
         
         // Store inventory data
         let inventoryData = [];
@@ -885,4 +885,364 @@
                 saleSku.appendChild(saleOption);
                 
                 const sourceOption = document.createElement('option');
-                sourceOption.value = item.
+                sourceOption.value = item.sku;
+                sourceOption.textContent = optionText;
+                transformSourceSku.appendChild(sourceOption);
+                
+                const targetOption = document.createElement('option');
+                targetOption.value = item.sku;
+                targetOption.textContent = optionText;
+                transformTargetSku.appendChild(targetOption);
+            });
+        }
+        
+        async function loadFinancialSummary() {
+            try {
+                const response = await fetch(`${API_URL}?action=getFinancialSummary`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch financial summary');
+                }
+                
+                const data = await response.json();
+                
+                document.getElementById('totalRevenue').textContent = formatCurrency(data.total_revenue);
+                document.getElementById('totalCost').textContent = formatCurrency(data.total_cost);
+                document.getElementById('totalProfit').textContent = formatCurrency(data.total_profit);
+                
+                const profitElement = document.getElementById('totalProfit');
+                profitElement.className = `amount ${data.total_profit >= 0 ? 'positive' : 'negative'}`;
+                
+                document.getElementById('grossMargin').textContent = `${data.gross_margin.toFixed(2)}%`;
+                
+            } catch (error) {
+                console.error('Error loading financial summary:', error);
+            }
+        }
+        
+function renderInventory(items) {
+    const inventoryBody = document.getElementById('inventoryBody');
+    inventoryBody.innerHTML = '';
+    
+    if (items.length === 0) {
+        inventoryBody.innerHTML = `
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 20px;">
+                    No inventory items found.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    items.forEach(function(item) {
+        const row = document.createElement('tr');
+        
+        // Determine stock status
+        let stockStatus = '';
+        let statusClass = '';
+        
+        if (item.qty_on_hand <= 0) {
+            stockStatus = '<span class="badge badge-danger">Out of Stock</span>';
+            row.classList.add('out-of-stock');
+        } else if (item.qty_on_hand <= item.reorder_point) {
+            stockStatus = '<span class="badge badge-danger">Low Stock</span>';
+            row.classList.add('low-stock');
+        } else {
+            stockStatus = '<span class="badge badge-success">In Stock</span>';
+        }
+        
+        row.innerHTML = `
+            <td>${item.sku}</td>
+            <td>${item.name}</td>
+            <td>${item.category || 'N/A'}</td>
+            <td>${item.brand || 'N/A'}</td>
+            <td>${item.color || 'N/A'}</td>
+            <td>${formatCurrency(item.sell_price)}</td>
+            <td>${formatCurrency(item.avg_cost || item.unit_cost)}</td>
+            <td>${item.qty_on_hand}</td>
+            <td>${formatCurrency(item.inventory_value || 0)}</td>
+            <td>${stockStatus}</td>
+        `;
+        
+        inventoryBody.appendChild(row);
+    });
+}
+        
+        function filterInventory() {
+            const searchInput = document.getElementById('searchInput');
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderInventory(inventoryData);
+                return;
+            }
+            
+            const filteredItems = inventoryData.filter(function(item) {
+                return (
+                    item.sku.toLowerCase().includes(searchTerm) ||
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    (item.category && item.category.toLowerCase().includes(searchTerm)) ||
+                    (item.brand && item.brand.toLowerCase().includes(searchTerm)) ||
+                    (item.color && item.color.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            renderInventory(filteredItems);
+        }
+        
+        async function generateSku() {
+            const itemCategory = document.getElementById('itemCategory');
+            const category = itemCategory.value;
+            
+            if (!category) {
+                showError('Please select a category first.');
+                return;
+            }
+            
+            let queryParams = `?action=generateSku&category=${encodeURIComponent(category)}`;
+            
+            // Add dynamic field values to query
+            const foodType = document.getElementById('foodType');
+            if (foodType && foodType.value) {
+                queryParams += `&foodType=${encodeURIComponent(foodType.value)}`;
+            }
+            
+            const itemVariation = document.getElementById('itemVariation');
+            if (itemVariation && itemVariation.value) {
+                queryParams += `&variation=${encodeURIComponent(itemVariation.value)}`;
+            }
+            
+            const itemBrand = document.getElementById('itemBrand');
+            if (itemBrand && itemBrand.value) {
+                queryParams += `&brand=${encodeURIComponent(itemBrand.value)}`;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}${queryParams}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to generate SKU');
+                }
+                
+                const data = await response.json();
+                document.getElementById('itemSku').value = data.sku;
+                
+            } catch (error) {
+                showError('Failed to generate SKU. Please try again.');
+                console.error('Error generating SKU:', error);
+            }
+        }
+        
+        async function handleAddItem(e) {
+            e.preventDefault();
+            
+            const itemSku = document.getElementById('itemSku');
+            
+            // Validate SKU
+            if (!itemSku.value) {
+                showError('Please generate a SKU first.');
+                return;
+            }
+            
+            try {
+                const payload = {
+                    action: 'addItem',
+                    sku: itemSku.value,
+                    name: document.getElementById('itemName').value,
+                    category: document.getElementById('itemCategory').value,
+                    brand: document.getElementById('itemBrand')?.value || '',
+                    gender: '',
+                    color: document.getElementById('itemColor')?.value || '',
+                    sell_price: parseFloat(document.getElementById('itemSellPrice').value),
+                    unit_cost: parseFloat(document.getElementById('itemUnitCost').value),
+                    reorder_point: parseInt(document.getElementById('itemReorderPoint').value),
+                    initial_stock: parseInt(document.getElementById('itemInitialStock').value),
+                    batch_id: `INIT-${new Date().toISOString().slice(0, 10)}`
+                };
+                
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to add item');
+                }
+                
+                const result = await response.json();
+                
+                if (result.status === 'ok') {
+                    showSuccess(`Item ${payload.sku} added successfully`);
+                    closeAllModals();
+                    document.getElementById('addItemForm').reset();
+                    await loadInventory();
+                    await loadFinancialSummary();
+                } else {
+                    showError(result.message || 'Failed to add item');
+                }
+                
+            } catch (error) {
+                showError('Failed to add item. Please try again.');
+                console.error('Error adding item:', error);
+            }
+        }
+        
+        async function handleAddStock(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('stockBatchId').value,
+                    sku: document.getElementById('stockSku').value,
+                    type: 'IN',
+                    qty: parseInt(document.getElementById('stockQty').value),
+                    unit_price: parseFloat(document.getElementById('stockUnitPrice').value),
+                    expiry_date: document.getElementById('stockExpiryDate').value || '',
+                    notes: document.getElementById('stockNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Added ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                document.getElementById('addStockForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('stockBatchId').value = `B${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to add stock. Please try again.');
+                console.error('Error adding stock:', error);
+            }
+        }
+        
+        async function handleRecordSale(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('saleBatchId').value,
+                    sku: document.getElementById('saleSku').value,
+                    type: 'OUT',
+                    qty: parseInt(document.getElementById('saleQty').value),
+                    unit_price: parseFloat(document.getElementById('saleUnitPrice').value),
+                    expiry_date: '',
+                    notes: document.getElementById('saleNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Recorded sale of ${payload.qty} units of ${payload.sku}`);
+                closeAllModals();
+                document.getElementById('recordSaleForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('saleBatchId').value = `S${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to record sale. Please try again.');
+                console.error('Error recording sale:', error);
+            }
+        }
+        
+        async function handleTransform(e) {
+            e.preventDefault();
+            
+            try {
+                const payload = {
+                    batch_id: document.getElementById('transformBatchId').value,
+                    sku: document.getElementById('transformSourceSku').value,
+                    type: 'TRANSFORM',
+                    qty: parseInt(document.getElementById('transformQty').value),
+                    target_sku: document.getElementById('transformTargetSku').value,
+                    transformation_cost: parseFloat(document.getElementById('transformCost').value || 0),
+                    expiry_date: '',
+                    notes: document.getElementById('transformNotes').value || ''
+                };
+                
+                await postMovement(payload);
+                showSuccess(`Transformed ${payload.qty} units from ${payload.sku} to ${payload.target_sku}`);
+                closeAllModals();
+                document.getElementById('transformForm').reset();
+                
+                // Update batch ID for next use
+                const today = new Date();
+                const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+                document.getElementById('transformBatchId').value = `T${dateStr}-${Math.floor(Math.random() * 100).toString().padStart(2, '0')}`;
+                
+                await loadInventory();
+                await loadFinancialSummary();
+            } catch (error) {
+                showError('Failed to transform product. Please try again.');
+                console.error('Error transforming product:', error);
+            }
+        }
+        
+        async function postMovement(payload) {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to post movement');
+            }
+            
+            return response.json();
+        }
+        
+        function openModal(modal) {
+            modal.style.display = 'block';
+            
+            // Populate SKU dropdowns when opening modal
+            if (modal.id === 'addStockModal' || modal.id === 'recordSaleModal' || modal.id === 'transformModal') {
+                populateSkuDropdowns(inventoryData);
+            }
+        }
+        
+        function closeAllModals() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(function(modal) {
+                modal.style.display = 'none';
+            });
+        }
+        
+        function showLoading(show) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            loadingIndicator.style.display = show ? 'block' : 'none';
+        }
+        
+        function showSuccess(message) {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successMessage.style.display = 'block';
+            
+            setTimeout(function() {
+                successMessage.style.display = 'none';
+            }, 3000);
+        }
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            
+            setTimeout(function() {
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+        
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-PH', {
+                style: 'currency',
+                currency: 'PHP'
+            }).format(amount);
+        }
+    </script>
